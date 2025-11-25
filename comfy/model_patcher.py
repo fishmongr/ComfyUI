@@ -757,6 +757,12 @@ class ModelPatcher:
                 logging.debug("lowvram: loaded module regularly {} {}".format(n, m))
                 m.comfy_patched_weights = True
 
+            # Synchronize ALL CUDA devices before loading modules to prevent "invalid argument" errors
+            # This ensures any pending async operations from previous model/TaylorSeer are complete
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            
             for x in load_completely:
                 x[2].to(device_to)
 
@@ -829,6 +835,12 @@ class ModelPatcher:
             self.backup.clear()
 
             if device_to is not None:
+                # Synchronize ALL CUDA devices before moving model to prevent "invalid argument" errors
+                # This is necessary because TaylorSeer and other custom nodes may have pending async operations
+                import torch
+                if torch.cuda.is_available():
+                    print(f"[DEBUG] Synchronizing CUDA before unpatch to {device_to}")
+                    torch.cuda.synchronize()
                 self.model.to(device_to)
                 self.model.device = device_to
             self.model.model_loaded_weight_memory = 0
@@ -947,6 +959,11 @@ class ModelPatcher:
             return self.model.model_loaded_weight_memory - current_used
 
     def detach(self, unpatch_all=True):
+        # Synchronize CUDA before detaching to ensure all operations are complete
+        import torch
+        if torch.cuda.is_available():
+            print("[DEBUG] Synchronizing CUDA before detach")
+            torch.cuda.synchronize()
         self.eject_model()
         self.model_patches_to(self.offload_device)
         if unpatch_all:

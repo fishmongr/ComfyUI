@@ -1,0 +1,38 @@
+[
+  {
+    "input_path": "output\\video\\polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_.mp4",
+    "input_info": {
+      "fps": 16.0,
+      "frames": 25,
+      "size_mb": 0.4471616744995117
+    },
+    "rife": {
+      "success": true,
+      "method": "rife",
+      "input_path": "output\\video\\polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_.mp4",
+      "output_path": "output\\video\\polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_rife_32fps.mp4",
+      "processing_time": 0.0,
+      "input_size_mb": 0.4471616744995117,
+      "output_size_mb": 2.3318586349487305,
+      "input_fps": 16.0,
+      "output_fps": 32.0,
+      "input_frames": 25,
+      "output_frames": 49,
+      "error": null
+    },
+    "film": {
+      "success": true,
+      "method": "film",
+      "input_path": "output\\video\\polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_.mp4",
+      "output_path": "output\\video\\polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_film_32fps.mp4",
+      "processing_time": 0.0,
+      "input_size_mb": 0.4471616744995117,
+      "output_size_mb": 1.6915273666381836,
+      "input_fps": 16.0,
+      "output_fps": 32.0,
+      "input_frames": 25,
+      "output_frames": 49,
+      "error": null
+    }
+  }
+]

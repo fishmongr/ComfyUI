@@ -1,0 +1,18 @@
+======================================================================
+Frame Interpolation Benchmark Report
+======================================================================
+Date: 2025-11-24 10:21:24
+Videos Tested: 1
+
+Summary Statistics
+----------------------------------------------------------------------
+RIFE: 1/1 successful, 0.0s total
+FILM: 1/1 successful, 0.0s total
+
+Detailed Results
+----------------------------------------------------------------------
+
+1. polar-bear_832x1216_25f_1.6s_4step_nosage_20251123_125650_00001_.mp4
+   Input: 25 frames @ 16.0fps, 0.45 MB
+   RIFE: 0.0s, 49 frames, 2.33 MB
+   FILM: 0.0s, 49 frames, 1.69 MB

@@ -11,9 +11,14 @@ import itertools
 import utils.extra_config
 import logging
 import sys
+import warnings
 from comfy_execution.progress import get_progress_state
 from comfy_execution.utils import get_executing_context
 from comfy_api import feature_flags
+
+# Suppress triton warnings about missing CUDA toolkit utilities (cuobjdump, nvdisasm)
+# These utilities are optional and only used for debugging/profiling
+warnings.filterwarnings('ignore', message='Failed to find.*', module='triton.knobs')
 
 if __name__ == "__main__":
     #NOTE: These do not do anything on core ComfyUI, they are for custom nodes.

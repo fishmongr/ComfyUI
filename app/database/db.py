@@ -84,7 +84,7 @@ def init_db():
     target_rev = script.get_current_head()
 
     if target_rev is None:
-        logging.warning("No target revision found.")
+        logging.debug("No database migrations found. Database is at base version.")
     elif current_rev != target_rev:
         # Backup the database pre upgrade
         backup_path = db_path + ".bkp"
