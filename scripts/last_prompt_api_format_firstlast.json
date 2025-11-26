@@ -1,0 +1,306 @@
+[
+  1,
+  "3b67c536-7a17-4a28-8870-438b569b46cc",
+  {
+    "84": {
+      "inputs": {
+        "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "type": "wan",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load CLIP"
+      }
+    },
+    "85": {
+      "inputs": {
+        "add_noise": "disable",
+        "noise_seed": 0,
+        "steps": 4,
+        "cfg": 1.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "start_at_step": 2,
+        "end_at_step": 4,
+        "return_with_leftover_noise": "disable",
+        "model": [
+          "118",
+          0
+        ],
+        "positive": [
+          "98",
+          0
+        ],
+        "negative": [
+          "98",
+          1
+        ],
+        "latent_image": [
+          "86",
+          0
+        ]
+      },
+      "class_type": "KSamplerAdvanced",
+      "_meta": {
+        "title": "KSampler (Advanced)"
+      }
+    },
+    "86": {
+      "inputs": {
+        "add_noise": "enable",
+        "noise_seed": 788979557527396,
+        "steps": 4,
+        "cfg": 1.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "start_at_step": 0,
+        "end_at_step": 2,
+        "return_with_leftover_noise": "enable",
+        "model": [
+          "117",
+          0
+        ],
+        "positive": [
+          "98",
+          0
+        ],
+        "negative": [
+          "98",
+          1
+        ],
+        "latent_image": [
+          "98",
+          2
+        ]
+      },
+      "class_type": "KSamplerAdvanced",
+      "_meta": {
+        "title": "KSampler (Advanced)"
+      }
+    },
+    "87": {
+      "inputs": {
+        "samples": [
+          "85",
+          0
+        ],
+        "vae": [
+          "90",
+          0
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "89": {
+      "inputs": {
+        "text": "distortion, blurry textures, morphing, inconsistent proportions, extra limbs, duplicated features, stretched frames, flicker, jitter, camera shake, warped shapes, low detail, oversharpen, extreme motion blur, artifacting, color banding\n",
+        "clip": [
+          "84",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Negative Prompt)"
+      }
+    },
+    "90": {
+      "inputs": {
+        "vae_name": "wan_2.1_vae.safetensors"
+      },
+      "class_type": "VAELoader",
+      "_meta": {
+        "title": "Load VAE"
+      }
+    },
+    "93": {
+      "inputs": {
+        "text": "cinematic winter scene, gentle camera motion, soft natural lighting, crisp snow highlights, realistic fur texture, calm atmosphere, subtle breathing and micro-movements, detailed fabric, high-resolution video diffusion, smooth temporal consistency, pristine cold environment, warm expression, subtle sparkle in snow, clean color balance, slow dolly-in, soft winter breeze, gentle ambient sparkle, dreamy arctic atmosphere",
+        "clip": [
+          "84",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Positive Prompt)"
+      }
+    },
+    "94": {
+      "inputs": {
+        "fps": 16.0,
+        "images": [
+          "87",
+          0
+        ]
+      },
+      "class_type": "CreateVideo",
+      "_meta": {
+        "title": "Create Video"
+      }
+    },
+    "95": {
+      "inputs": {
+        "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      },
+      "class_type": "UNETLoader",
+      "_meta": {
+        "title": "Load Diffusion Model"
+      }
+    },
+    "96": {
+      "inputs": {
+        "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      },
+      "class_type": "UNETLoader",
+      "_meta": {
+        "title": "Load Diffusion Model"
+      }
+    },
+    "97": {
+      "inputs": {
+        "image": "sogni-photobooth-my-polar-bear-baby-raw.jpg"
+      },
+      "class_type": "LoadImage",
+      "_meta": {
+        "title": "Load Start Image"
+      }
+    },
+    "98": {
+      "inputs": {
+        "width": 832,
+        "height": 1216,
+        "length": 25,
+        "batch_size": 1,
+        "positive": [
+          "93",
+          0
+        ],
+        "negative": [
+          "89",
+          0
+        ],
+        "vae": [
+          "90",
+          0
+        ],
+        "start_image": [
+          "97",
+          0
+        ]
+      },
+      "class_type": "WanFirstLastFrameToVideo",
+      "_meta": {
+        "title": "WanFirstLastFrameToVideo"
+      }
+    },
+    "101": {
+      "inputs": {
+        "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+        "strength_model": 1.0000000000000002,
+        "model": [
+          "95",
+          0
+        ]
+      },
+      "class_type": "LoraLoaderModelOnly",
+      "_meta": {
+        "title": "LoraLoaderModelOnly"
+      }
+    },
+    "102": {
+      "inputs": {
+        "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+        "strength_model": 1.0000000000000002,
+        "model": [
+          "96",
+          0
+        ]
+      },
+      "class_type": "LoraLoaderModelOnly",
+      "_meta": {
+        "title": "LoraLoaderModelOnly"
+      }
+    },
+    "103": {
+      "inputs": {
+        "shift": 5.000000000000001,
+        "model": [
+          "102",
+          0
+        ]
+      },
+      "class_type": "ModelSamplingSD3",
+      "_meta": {
+        "title": "ModelSamplingSD3"
+      }
+    },
+    "104": {
+      "inputs": {
+        "shift": 5.000000000000001,
+        "model": [
+          "101",
+          0
+        ]
+      },
+      "class_type": "ModelSamplingSD3",
+      "_meta": {
+        "title": "ModelSamplingSD3"
+      }
+    },
+    "108": {
+      "inputs": {
+        "filename_prefix": "video/polar-bear_%width%x%height%_25f_1.6s_4step_nosage_%year%%month%%day%_%hour%%minute%%second%",
+        "format": "auto",
+        "codec": "auto",
+        "video": [
+          "94",
+          0
+        ]
+      },
+      "class_type": "SaveVideo",
+      "_meta": {
+        "title": "Save Video"
+      }
+    },
+    "117": {
+      "inputs": {
+        "enable": false,
+        "print_backend": true,
+        "model": [
+          "104",
+          0
+        ]
+      },
+      "class_type": "Sage3AttentionOnlySwitch",
+      "_meta": {
+        "title": "Attention: Sage 3 (Blackwell)"
+      }
+    },
+    "118": {
+      "inputs": {
+        "enable": false,
+        "print_backend": true,
+        "model": [
+          "103",
+          0
+        ]
+      },
+      "class_type": "Sage3AttentionOnlySwitch",
+      "_meta": {
+        "title": "Attention: Sage 3 (Blackwell)"
+      }
+    }
+  },
+  {},
+  [
+    "108"
+  ]
+]
+

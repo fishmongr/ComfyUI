@@ -24,7 +24,7 @@ import random
 
 # ComfyUI API settings
 DEFAULT_COMFYUI_URL = "http://localhost:8188"
-API_PROMPT_TEMPLATE_PATH = "scripts/last_prompt_api_format.json"
+API_PROMPT_TEMPLATE_PATH = "scripts/last_prompt_api_format_firstlast.json"
 
 def get_source_name(image_path: str) -> str:
     """Extract a clean source name from the image path."""
@@ -50,7 +50,8 @@ def load_api_prompt_template() -> Dict[str, Any]:
 
 def update_api_prompt(
     api_prompt: Dict[str, Any],
-    image_path: str,
+    first_frame_path: Optional[str],
+    last_frame_path: Optional[str],
     frames: int,
     width: int,
     height: int,
@@ -60,11 +61,12 @@ def update_api_prompt(
     settings: str = "4step_nosage"
 ) -> Dict[str, Any]:
     """
-    Update API prompt with image path, prompts, and dynamic filename.
+    Update API prompt with image paths, prompts, and dynamic filename.
     
     Args:
         api_prompt: The API prompt dictionary to update
-        image_path: Path to the source image
+        first_frame_path: Path to the first frame image (None for last-only mode)
+        last_frame_path: Path to the last frame image (None for first-only mode)
         frames: Number of frames to generate
         width: Video width
         height: Video height
@@ -77,9 +79,17 @@ def update_api_prompt(
     # Calculate duration
     duration = calculate_duration(frames)
     
+    # Determine mode tag
+    if first_frame_path and last_frame_path:
+        mode_tag = "first_last"
+    elif last_frame_path:
+        mode_tag = "last_only"
+    else:
+        mode_tag = "first"
+    
     # Build filename pattern
     filename_pattern = (
-        f"video/{source_name}_%width%x%height%_{frames}f_{duration}_{settings}_"
+        f"video/{source_name}_%width%x%height%_{frames}f_{duration}_{mode_tag}_{settings}_"
         "%year%%month%%day%_%hour%%minute%%second%"
     )
     
@@ -87,14 +97,45 @@ def update_api_prompt(
     seed = random.randint(0, 2**48)
     
     # Update nodes
-    # Use absolute path so ComfyUI can find the image
-    abs_image_path = os.path.abspath(image_path)
-    api_prompt["97"]["inputs"]["image"] = abs_image_path
     api_prompt["98"]["inputs"]["width"] = width
     api_prompt["98"]["inputs"]["height"] = height
     api_prompt["98"]["inputs"]["length"] = frames
     api_prompt["108"]["inputs"]["filename_prefix"] = filename_pattern
     api_prompt["86"]["inputs"]["noise_seed"] = seed
+    
+    # Handle first frame
+    if first_frame_path:
+        abs_first_frame_path = os.path.abspath(first_frame_path)
+        api_prompt["97"]["inputs"]["image"] = abs_first_frame_path
+        api_prompt["98"]["inputs"]["start_image"] = ["97", 0]
+    else:
+        # Remove start_image if it exists
+        if "start_image" in api_prompt["98"]["inputs"]:
+            del api_prompt["98"]["inputs"]["start_image"]
+    
+    # Handle last frame
+    if last_frame_path:
+        abs_last_frame_path = os.path.abspath(last_frame_path)
+        # Check if node 99 (LoadImage for last frame) exists, if not create it
+        if "99" not in api_prompt:
+            api_prompt["99"] = {
+                "inputs": {
+                    "image": abs_last_frame_path
+                },
+                "class_type": "LoadImage",
+                "_meta": {
+                    "title": "Load Last Image"
+                }
+            }
+        else:
+            api_prompt["99"]["inputs"]["image"] = abs_last_frame_path
+        
+        # Connect last frame to node 98
+        api_prompt["98"]["inputs"]["end_image"] = ["99", 0]
+    else:
+        # Remove end_image if it exists
+        if "end_image" in api_prompt["98"]["inputs"]:
+            del api_prompt["98"]["inputs"]["end_image"]
     
     # Update prompts if provided
     if positive_prompt is not None:
@@ -264,8 +305,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic usage (25 frames, 832x1216)
+  # Basic usage (25 frames, 832x1216, first frame only)
   python scripts/generate_wan22_video.py input/my-image.jpg
+  
+  # Last frame only (generates video leading TO this frame)
+  python scripts/generate_wan22_video.py input/target-frame.jpg --last-only
+  
+  # First + Last frame interpolation
+  python scripts/generate_wan22_video.py input/first.jpg --last-frame input/last.jpg
   
   # Custom frame count (49 frames for 3s video)
   python scripts/generate_wan22_video.py input/my-image.jpg --frames 49
@@ -273,18 +320,22 @@ Examples:
   # Custom resolution
   python scripts/generate_wan22_video.py input/my-image.jpg --width 1024 --height 1024 --frames 81
   
-  # With custom prompts
-  python scripts/generate_wan22_video.py input/my-image.jpg --positive "cinematic slow motion" --negative "blurry, distorted"
+  # With custom prompts and last frame
+  python scripts/generate_wan22_video.py input/first.jpg --last-frame input/last.jpg --positive "cinematic slow motion" --negative "blurry, distorted"
   
   # With automatic frame interpolation
   python scripts/generate_wan22_video.py input/my-image.jpg --interpolate film
   
   # Full example with all options
-  python scripts/generate_wan22_video.py input/my-image.jpg --frames 81 --positive "smooth camera pan" --negative "blur" --interpolate film --crf 18
+  python scripts/generate_wan22_video.py input/first.jpg --last-frame input/last.jpg --frames 81 --positive "smooth camera pan" --negative "blur" --interpolate film --crf 18
         """
     )
     
-    parser.add_argument("image_path", help="Path to the source image")
+    parser.add_argument("image_path", help="Path to the first frame image (or last frame if using --last-only)")
+    parser.add_argument("--last-frame", type=str, default=None,
+                       help="Path to the last frame image (optional - for first+last frame interpolation)")
+    parser.add_argument("--last-only", action="store_true",
+                       help="Use image_path as last frame only (generates frames leading TO this frame)")
     parser.add_argument("--frames", type=int, default=25, help="Number of frames to generate (default: 25)")
     parser.add_argument("--width", type=int, default=832, help="Video width (default: 832)")
     parser.add_argument("--height", type=int, default=1216, help="Video height (default: 1216)")
@@ -314,9 +365,21 @@ Examples:
         else:
             args.timeout = 600  # 10 minutes for short videos
     
-    # Validate image path
+    # Validate conflicting options
+    if args.last_only and args.last_frame:
+        print(f"[ERROR] Cannot use both --last-only and --last-frame")
+        print(f"   --last-only: image_path is the last frame")
+        print(f"   --last-frame: image_path is first frame, --last-frame is last frame")
+        sys.exit(1)
+    
+    # Validate image paths
     if not os.path.exists(args.image_path):
-        print(f"[ERROR] Image not found: {args.image_path}")
+        frame_type = "last" if args.last_only else "first"
+        print(f"[ERROR] {frame_type.capitalize()} frame image not found: {args.image_path}")
+        sys.exit(1)
+    
+    if args.last_frame and not os.path.exists(args.last_frame):
+        print(f"[ERROR] Last frame image not found: {args.last_frame}")
         sys.exit(1)
     
     # Validate template path
@@ -332,7 +395,25 @@ Examples:
     print("=" * 70)
     print("Wan 2.2 i2v Video Generation")
     print("=" * 70)
-    print(f"Source Image:  {args.image_path}")
+    
+    # Determine mode and display accordingly
+    if args.last_only:
+        print(f"Last Frame:    {args.image_path}")
+        print(f"Mode:          Last Frame Only (reverse i2v - generates TO this frame)")
+        first_frame_path = None
+        last_frame_path = args.image_path
+    elif args.last_frame:
+        print(f"First Frame:   {args.image_path}")
+        print(f"Last Frame:    {args.last_frame}")
+        print(f"Mode:          First+Last Frame Interpolation")
+        first_frame_path = args.image_path
+        last_frame_path = args.last_frame
+    else:
+        print(f"First Frame:   {args.image_path}")
+        print(f"Mode:          First Frame Only (i2v)")
+        first_frame_path = args.image_path
+        last_frame_path = None
+    
     print(f"Source Name:   {source_name}")
     print(f"Resolution:    {args.width}x{args.height}")
     print(f"Frames:        {args.frames} ({duration} @ 16fps)")
@@ -350,7 +431,8 @@ Examples:
         api_prompt = load_api_prompt_template()
         api_prompt = update_api_prompt(
             api_prompt,
-            args.image_path,
+            first_frame_path,
+            last_frame_path,
             args.frames,
             args.width,
             args.height,
