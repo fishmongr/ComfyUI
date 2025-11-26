@@ -184,10 +184,11 @@ def encode_frames_to_video(
     frames_dir: str,
     output_path: str,
     fps: float,
+    source_video: str = None,
     crf: int = 18,
     preset: str = "medium"
 ) -> bool:
-    """Encode PNG frames to video with single compression pass"""
+    """Encode PNG frames to video with single compression pass and optional audio"""
     
     # Get first frame to determine resolution
     frame_files = sorted([f for f in os.listdir(frames_dir) if f.endswith('.png')])
@@ -197,18 +198,40 @@ def encode_frames_to_video(
     
     print(f"[INFO] Encoding {len(frame_files)} frames to video @ {fps}fps...", flush=True)
     
-    cmd = [
-        'ffmpeg',
-        '-framerate', str(fps),
-        '-i', os.path.join(frames_dir, 'interp_%05d.png'),
-        '-c:v', 'libx264',
-        '-preset', preset,
-        '-crf', str(crf),
-        '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart',
-        '-y',
-        output_path
-    ]
+    # Build FFmpeg command with or without audio
+    if source_video and os.path.exists(source_video):
+        # Extract audio from source and combine with new video
+        cmd = [
+            'ffmpeg',
+            '-framerate', str(fps),
+            '-i', os.path.join(frames_dir, 'interp_%05d.png'),
+            '-i', source_video,  # Source video with audio
+            '-map', '0:v',  # Video from frames
+            '-map', '1:a?',  # Audio from source (optional)
+            '-c:v', 'libx264',
+            '-preset', preset,
+            '-crf', str(crf),
+            '-c:a', 'aac',  # Re-encode audio
+            '-b:a', '192k',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ]
+    else:
+        # No audio
+        cmd = [
+            'ffmpeg',
+            '-framerate', str(fps),
+            '-i', os.path.join(frames_dir, 'interp_%05d.png'),
+            '-c:v', 'libx264',
+            '-preset', preset,
+            '-crf', str(crf),
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     
@@ -222,6 +245,8 @@ def encode_frames_to_video(
     
     print(f"[SUCCESS] Video saved: {output_path}", flush=True)
     print(f"[SUCCESS] {duration:.1f}s @ {fps}fps, {output_size_mb:.2f} MB", flush=True)
+    if source_video:
+        print(f"[SUCCESS] Audio preserved from source video", flush=True)
     
     return True
 
@@ -230,10 +255,11 @@ def encode_tensors_to_video(
     frames_tensor,
     output_path: str,
     fps: float,
+    source_video: str = None,
     crf: int = 18,
     preset: str = "medium"
 ) -> bool:
-    """Encode frames directly from tensor to video (avoids disk writes)"""
+    """Encode frames directly from tensor to video with optional audio from source"""
     
     num_frames = len(frames_tensor)
     print(f"[INFO] Encoding {num_frames} frames to video @ {fps}fps (direct from memory)...", flush=True)
@@ -246,22 +272,47 @@ def encode_tensors_to_video(
     height, width = first_frame.shape[:2]
     
     # Create FFmpeg process with pipe input
-    cmd = [
-        'ffmpeg',
-        '-f', 'rawvideo',
-        '-vcodec', 'rawvideo',
-        '-s', f'{width}x{height}',
-        '-pix_fmt', 'rgb24',
-        '-r', str(fps),
-        '-i', '-',  # Read from stdin
-        '-c:v', 'libx264',
-        '-preset', preset,
-        '-crf', str(crf),
-        '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart',
-        '-y',
-        output_path
-    ]
+    if source_video and os.path.exists(source_video):
+        # With audio from source
+        cmd = [
+            'ffmpeg',
+            '-f', 'rawvideo',
+            '-vcodec', 'rawvideo',
+            '-s', f'{width}x{height}',
+            '-pix_fmt', 'rgb24',
+            '-r', str(fps),
+            '-i', '-',  # Read from stdin (video)
+            '-i', source_video,  # Source video with audio
+            '-map', '0:v',  # Video from pipe
+            '-map', '1:a?',  # Audio from source (optional)
+            '-c:v', 'libx264',
+            '-preset', preset,
+            '-crf', str(crf),
+            '-c:a', 'aac',
+            '-b:a', '192k',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ]
+    else:
+        # No audio
+        cmd = [
+            'ffmpeg',
+            '-f', 'rawvideo',
+            '-vcodec', 'rawvideo',
+            '-s', f'{width}x{height}',
+            '-pix_fmt', 'rgb24',
+            '-r', str(fps),
+            '-i', '-',  # Read from stdin
+            '-c:v', 'libx264',
+            '-preset', preset,
+            '-crf', str(crf),
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ]
     
     try:
         # Redirect stderr to DEVNULL to avoid pipe buffer deadlock
@@ -294,6 +345,8 @@ def encode_tensors_to_video(
         
         print(f"[SUCCESS] Video saved: {output_path}", flush=True)
         print(f"[SUCCESS] {duration:.1f}s @ {fps}fps, {output_size_mb:.2f} MB", flush=True)
+        if source_video:
+            print(f"[SUCCESS] Audio preserved from source video", flush=True)
         
         return True
         
@@ -341,9 +394,15 @@ def process_pipeline(
         if interpolated_tensor is None:
             return False
         
-        # Step 3: Encode directly from tensor (single compression pass, no disk I/O)
+        # Step 3: Encode directly from tensor (single compression pass, with audio from source)
         output_fps = input_fps * 2
-        success = encode_tensors_to_video(interpolated_tensor, output_path, output_fps, crf)
+        success = encode_tensors_to_video(
+            interpolated_tensor, 
+            output_path, 
+            output_fps, 
+            source_video=input_path,  # Pass source for audio
+            crf=crf
+        )
         
         return success
         

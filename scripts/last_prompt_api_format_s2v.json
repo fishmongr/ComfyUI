@@ -1,0 +1,250 @@
+[
+  1,
+  "s2v-workflow-id",
+  {
+    "84": {
+      "inputs": {
+        "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "type": "wan",
+        "device": "default"
+      },
+      "class_type": "CLIPLoader",
+      "_meta": {
+        "title": "Load CLIP"
+      }
+    },
+    "86": {
+      "inputs": {
+        "add_noise": "enable",
+        "noise_seed": 788979557527396,
+        "steps": 4,
+        "cfg": 1.0,
+        "sampler_name": "uni_pc",
+        "scheduler": "simple",
+        "start_at_step": 0,
+        "end_at_step": 4,
+        "return_with_leftover_noise": "disable",
+        "model": [
+          "107",
+          0
+        ],
+        "positive": [
+          "98",
+          0
+        ],
+        "negative": [
+          "98",
+          1
+        ],
+        "latent_image": [
+          "98",
+          2
+        ]
+      },
+      "class_type": "KSamplerAdvanced",
+      "_meta": {
+        "title": "KSampler (Advanced)"
+      }
+    },
+    "87": {
+      "inputs": {
+        "samples": [
+          "86",
+          0
+        ],
+        "vae": [
+          "90",
+          0
+        ]
+      },
+      "class_type": "VAEDecode",
+      "_meta": {
+        "title": "VAE Decode"
+      }
+    },
+    "89": {
+      "inputs": {
+        "text": "low quality, blurry, distorted, morphing, inconsistent motion, artifacting, glitchy\n",
+        "clip": [
+          "84",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Negative Prompt)"
+      }
+    },
+    "90": {
+      "inputs": {
+        "vae_name": "wan_2.1_vae.safetensors"
+      },
+      "class_type": "VAELoader",
+      "_meta": {
+        "title": "Load VAE"
+      }
+    },
+    "93": {
+      "inputs": {
+        "text": "high quality, smooth motion, cinematic, well-synchronized with audio, dynamic movement",
+        "clip": [
+          "84",
+          0
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Positive Prompt)"
+      }
+    },
+    "94": {
+      "inputs": {
+        "fps": 16.0,
+        "images": [
+          "87",
+          0
+        ],
+        "audio": [
+          "119",
+          0
+        ]
+      },
+      "class_type": "CreateVideo",
+      "_meta": {
+        "title": "Create Video"
+      }
+    },
+    "95": {
+      "inputs": {
+        "unet_name": "wan2.2_s2v_14B_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      },
+      "class_type": "UNETLoader",
+      "_meta": {
+        "title": "Load S2V Model"
+      }
+    },
+    "97": {
+      "inputs": {
+        "image": "reference-image.jpg"
+      },
+      "class_type": "LoadImage",
+      "_meta": {
+        "title": "Load Reference Image"
+      }
+    },
+    "98": {
+      "inputs": {
+        "width": 832,
+        "height": 1216,
+        "length": 77,
+        "batch_size": 1,
+        "positive": [
+          "93",
+          0
+        ],
+        "negative": [
+          "89",
+          0
+        ],
+        "vae": [
+          "90",
+          0
+        ],
+        "audio_encoder_output": [
+          "122",
+          0
+        ],
+        "ref_image": [
+          "97",
+          0
+        ]
+      },
+      "class_type": "WanSoundImageToVideo",
+      "_meta": {
+        "title": "WanSoundImageToVideo"
+      }
+    },
+    "103": {
+      "inputs": {
+        "shift": 8.0,
+        "model": [
+          "107",
+          0
+        ]
+      },
+      "class_type": "ModelSamplingSD3",
+      "_meta": {
+        "title": "ModelSamplingSD3"
+      }
+    },
+    "107": {
+      "inputs": {
+        "model": [
+          "95",
+          0
+        ],
+        "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+        "strength_model": 1.0
+      },
+      "class_type": "LoraLoaderModelOnly",
+      "_meta": {
+        "title": "Load 4-Step LoRA"
+      }
+    },
+    "108": {
+      "inputs": {
+        "filename_prefix": "video/sound_video_%width%x%height%_77f_4.8s_s2v_%year%%month%%day%_%hour%%minute%%second%",
+        "format": "auto",
+        "codec": "auto",
+        "video": [
+          "94",
+          0
+        ]
+      },
+      "class_type": "SaveVideo",
+      "_meta": {
+        "title": "Save Video"
+      }
+    },
+    "119": {
+      "inputs": {
+        "audio": "audio-file.wav"
+      },
+      "class_type": "LoadAudio",
+      "_meta": {
+        "title": "Load Audio"
+      }
+    },
+    "120": {
+      "inputs": {
+        "audio_encoder_name": "wav2vec2_large_english_fp16.safetensors"
+      },
+      "class_type": "AudioEncoderLoader",
+      "_meta": {
+        "title": "Load Audio Encoder"
+      }
+    },
+    "122": {
+      "inputs": {
+        "audio_encoder": [
+          "120",
+          0
+        ],
+        "audio": [
+          "119",
+          0
+        ]
+      },
+      "class_type": "AudioEncoderEncode",
+      "_meta": {
+        "title": "Encode Audio"
+      }
+    }
+  },
+  {},
+  [
+    "108"
+  ]
+]
+
